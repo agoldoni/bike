@@ -1,0 +1,4 @@
+<resources>
+    <!-- Build debug: icona blu per distinguerla dalla release installata. -->
+    <color name="ic_launcher_background">#FF1565C0</color>
+</resources>

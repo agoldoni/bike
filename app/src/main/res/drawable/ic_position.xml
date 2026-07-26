@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <!-- Pallino della posizione corrente: bordo bianco per staccare dalle tile chiare. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14,14m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
+    <path
+        android:fillColor="#FF1565C0"
+        android:pathData="M14,14m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+</vector>

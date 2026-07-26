@@ -1,0 +1,4 @@
+<resources>
+    <!-- Build release: icona verde. -->
+    <color name="ic_launcher_background">#FF388E3C</color>
+</resources>

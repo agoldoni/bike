@@ -1,0 +1,4 @@
+<resources>
+    <!-- Fallback: i buildType debug/release fanno override di questo valore. -->
+    <color name="ic_launcher_background">#FF1565C0</color>
+</resources>

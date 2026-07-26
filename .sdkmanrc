@@ -1,0 +1,4 @@
+# JDK del progetto, gestita con SDKMAN (sdk env).
+# Fissata perché la JDK di sistema può non essere supportata dal daemon Gradle;
+# JDK 21 è compatibile con Gradle 8.14 / AGP 8.10 (jvmTarget 17).
+java=21.0.6-tem

@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Bike</string>
+    <string name="notification_channel_name">Tracciamento giro</string>
+    <string name="notification_title">Giro in corso</string>
+    <string name="waiting_gps">attendo il segnale GPS…</string>
+    <string name="weak_gps">segnale impreciso · ±%1$d m</string>
+    <string name="location_disabled">Attiva la geolocalizzazione nelle impostazioni del telefono</string>
+    <string name="recenter">Ricentra</string>
+</resources>
