@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.play.services.location)
     implementation(libs.osmdroid.android)
+    implementation(libs.androidx.fragment)
 
     testImplementation(libs.junit)
 }

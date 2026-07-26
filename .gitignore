@@ -4,6 +4,7 @@
 build/
 local.properties
 .idea/
+.vscode/
 .DS_Store
 captures/
 .externalNativeBuild/
