@@ -124,10 +124,12 @@ private fun RideScreen(
 ) {
     var panelExpanded by rememberSaveable { mutableStateOf(false) }
     var followPosition by rememberSaveable { mutableStateOf(true) }
+    var editingWeights by rememberSaveable { mutableStateOf(false) }
     val topInsetPx = WindowInsets.statusBars.getTop(LocalDensity.current)
     val context = LocalContext.current
     // Letta una volta sola: dopo il primo fix comanda la posizione corrente.
     val lastKnown = remember { LastKnownPosition.load(context) }
+    var profile by remember { mutableStateOf(RiderProfileStore.load(context)) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -162,11 +164,27 @@ private fun RideScreen(
                 state = state,
                 expanded = panelExpanded,
                 waitingForFix = state.isTracking && position == null,
+                // A giro iniziato comanda la massa con cui il conteggio è partito:
+                // cambiare i pesi a metà strada non deve smentire le calorie già contate.
+                totalMassKg = if (state.isTracking) state.totalMassKg else profile.totalKg,
                 onExpand = { panelExpanded = true },
                 onStart = onStart,
                 onStop = onStop,
+                onEditWeights = { editingWeights = true },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
+
+            if (editingWeights) {
+                WeightsDialog(
+                    profile = profile,
+                    onDismiss = { editingWeights = false },
+                    onConfirm = {
+                        profile = it
+                        RiderProfileStore.save(context, it)
+                        editingWeights = false
+                    },
+                )
+            }
         }
     }
 }

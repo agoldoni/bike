@@ -68,7 +68,9 @@ class TrackingService : Service() {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
         )
 
-        RideTracker.onStart()
+        // I pesi si leggono qui e non a ogni tick: cambiarli a giro iniziato non deve
+        // ricalcolare a ritroso le calorie già contate.
+        RideTracker.onStart(RiderProfileStore.load(this).totalKg)
         lastLocation = null
         lastTrackLocation = null
         lastKnownSaved.set(false)

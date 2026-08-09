@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,9 +49,16 @@ fun RidePanel(
     state: RideState,
     expanded: Boolean,
     waitingForFix: Boolean,
+    /**
+     * Massa da mostrare accanto alle calorie. Non si legge da [RideState] perché lì è
+     * congelata all'avvio del giro: da fermi il pannello deve invece riflettere subito
+     * i pesi appena modificati.
+     */
+    totalMassKg: Float,
     onExpand: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
+    onEditWeights: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val fraction by animateFloatAsState(
@@ -130,6 +138,23 @@ fun RidePanel(
                     label = "media km/h",
                     growth = growth,
                     modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Le calorie stanno su una riga a parte, e solo da espanso: in compatto una
+            // quarta colonna spezzerebbe il tempo, che è già il valore più largo.
+            // La riga sfuma insieme all'altezza invece di comparire di scatto.
+            if (growth > 0f) {
+                Metric(
+                    value = String.format(Locale.ITALY, "%.0f", state.kcal),
+                    // Il peso è dentro l'etichetta perché è il parametro che decide il
+                    // numero: mostrarlo dice anche dove si va a cambiarlo.
+                    label = stringResource(R.string.kcal_label, totalMassKg.toInt()),
+                    growth = growth,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(growth)
+                        .clickable(onClick = onEditWeights),
                 )
             }
 

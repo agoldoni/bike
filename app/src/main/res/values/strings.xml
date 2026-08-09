@@ -6,4 +6,11 @@
     <string name="weak_gps">segnale impreciso · ±%1$d m</string>
     <string name="location_disabled">Attiva la geolocalizzazione nelle impostazioni del telefono</string>
     <string name="recenter">Ricentra</string>
+    <string name="kcal_label">kcal · %1$d kg</string>
+    <string name="weights_title">Pesi</string>
+    <string name="weights_message">Servono a stimare le calorie. La stima si basa sulla velocità e non tiene conto delle salite.</string>
+    <string name="weights_rider">Ciclista (kg)</string>
+    <string name="weights_bike">Bici (kg)</string>
+    <string name="weights_save">Salva</string>
+    <string name="weights_cancel">Annulla</string>
 </resources>

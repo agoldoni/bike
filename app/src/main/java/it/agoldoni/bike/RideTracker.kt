@@ -18,6 +18,14 @@ data class RideState(
     val elapsedMillis: Long = 0L,
     /** Accuratezza dichiarata dell'ultimo fix, in metri; null finché non ne arriva uno. */
     val accuracyMeters: Float? = null,
+    /**
+     * Calorie attive stimate, accumulate secondo per secondo. Non è una grandezza
+     * derivabile a fine giro dalla velocità media: una sosta lunga abbasserebbe la media
+     * e con essa il MET di tutto il percorso, quindi va integrata mentre si pedala.
+     */
+    val kcal: Float = 0f,
+    /** Ciclista più bici: il moltiplicatore del MET, fissato all'avvio del giro. */
+    val totalMassKg: Float = RiderProfileStore.DEFAULT.totalKg,
 ) {
     val avgSpeedKmh: Float
         get() = if (elapsedMillis > 0) distanceMeters / (elapsedMillis / 1000f) * 3.6f else 0f
@@ -44,8 +52,8 @@ object RideTracker {
     private val _track = MutableStateFlow<List<GeoPoint>>(emptyList())
     val track: StateFlow<List<GeoPoint>> = _track.asStateFlow()
 
-    fun onStart() {
-        _state.value = RideState(isTracking = true)
+    fun onStart(totalMassKg: Float = RiderProfileStore.DEFAULT.totalKg) {
+        _state.value = RideState(isTracking = true, totalMassKg = totalMassKg)
         _position.value = null
         _track.value = emptyList()
     }
@@ -54,8 +62,23 @@ object RideTracker {
         _state.update { it.copy(isTracking = false, speedKmh = 0f) }
     }
 
+    /**
+     * Avanza il cronometro e, con esso, le calorie: il tempo trascorso dall'ultimo tick
+     * si considera percorso alla velocità corrente. Il ticker batte ogni secondo, ma il
+     * delta si ricava dai due valori di [RideState.elapsedMillis] invece di darlo per
+     * scontato, così un tick in ritardo non perde né inventa energia.
+     */
     fun onElapsed(elapsedMillis: Long) {
-        _state.update { it.copy(elapsedMillis = elapsedMillis) }
+        _state.update {
+            it.copy(
+                elapsedMillis = elapsedMillis,
+                kcal = it.kcal + CalorieModel.kcalFor(
+                    speedKmh = it.speedKmh,
+                    deltaMillis = elapsedMillis - it.elapsedMillis,
+                    massKg = it.totalMassKg,
+                ),
+            )
+        }
     }
 
     /** Nessuno spostamento significativo di recente: la velocità mostrata torna a zero. */

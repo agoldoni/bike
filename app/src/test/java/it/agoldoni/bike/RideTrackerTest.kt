@@ -34,6 +34,44 @@ class RideTrackerTest {
         assertEquals(0f, RideTracker.state.value.speedKmh, 0f)
         assertNull(RideTracker.state.value.accuracyMeters)
         assertTrue(RideTracker.state.value.isTracking)
+        assertEquals(0f, RideTracker.state.value.kcal, 0f)
+    }
+
+    @Test
+    fun `onElapsed accumula le calorie alla velocita corrente`() {
+        RideTracker.onStart(totalMassKg = 90f)
+        RideTracker.onSample(speedKmh = 20f, deltaMeters = 100f)
+
+        // Mezz'ora a 20 km/h: 8.0 MET × 90 kg × 0,5 h
+        RideTracker.onElapsed(1_800_000L)
+
+        assertEquals(360f, RideTracker.state.value.kcal, 0.01f)
+    }
+
+    @Test
+    fun `le calorie si sommano un tick alla volta`() {
+        RideTracker.onStart(totalMassKg = 90f)
+        RideTracker.onSample(speedKmh = 20f, deltaMeters = 100f)
+        RideTracker.onElapsed(1_800_000L)
+
+        // Il secondo tratto conta solo il tempo trascorso dal tick precedente, alla
+        // nuova velocità: 10.0 MET × 90 kg × 0,25 h
+        RideTracker.onSample(speedKmh = 24f, deltaMeters = 100f)
+        RideTracker.onElapsed(2_700_000L)
+
+        assertEquals(360f + 225f, RideTracker.state.value.kcal, 0.01f)
+    }
+
+    @Test
+    fun `da fermi il cronometro avanza ma le calorie no`() {
+        RideTracker.onStart(totalMassKg = 90f)
+        RideTracker.onSample(speedKmh = 20f, deltaMeters = 100f)
+        RideTracker.onSpeedLost()
+
+        RideTracker.onElapsed(600_000L)
+
+        assertEquals(600_000L, RideTracker.state.value.elapsedMillis)
+        assertEquals(0f, RideTracker.state.value.kcal, 0f)
     }
 
     @Test
