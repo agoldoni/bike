@@ -4,11 +4,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.serialization.Serializable
 
 /**
  * Coordinata geografica del dominio. Volutamente distinta dal `GeoPoint` di osmdroid:
  * tiene la libreria di mappa confinata in [RideMap], così è sostituibile.
+ *
+ * Serializzabile perché i punti campionati di un giro salvato restano su disco finché il
+ * loro nome non è stato risolto (vedi [SavedRide.pendingSamples]).
  */
+@Serializable
 data class GeoPoint(val lat: Double, val lon: Double)
 
 data class RideState(
@@ -32,6 +37,20 @@ data class RideState(
 }
 
 /**
+ * Copia congelata di un giro appena concluso, in attesa che l'utente decida se salvarlo.
+ *
+ * Serve perché [RideTracker.onStart] azzera stato, posizione e tracciato: senza una copia,
+ * un nuovo START mentre la domanda è ancora aperta farebbe sparire sotto le mani della UI
+ * proprio il giro che sta chiedendo di salvare.
+ */
+data class FinishedRide(
+    /** Istante di fine, orologio a muro: il cronometro del giro non basta a datarlo. */
+    val endedAtMillis: Long,
+    val state: RideState,
+    val track: List<GeoPoint>,
+)
+
+/**
  * Stato del giro condiviso tra [TrackingService] (che lo aggiorna) e la UI
  * (che lo osserva). Singleton di processo: sopravvive alla ricreazione
  * dell'Activity finché il processo è vivo.
@@ -52,14 +71,44 @@ object RideTracker {
     private val _track = MutableStateFlow<List<GeoPoint>>(emptyList())
     val track: StateFlow<List<GeoPoint>> = _track.asStateFlow()
 
+    /**
+     * Giro appena concluso in attesa di risposta, oppure `null` se non c'è niente da
+     * chiedere. Sta su un flow a sé perché cambia una volta per giro, mentre [state]
+     * emette a ogni secondo.
+     */
+    private val _pendingRide = MutableStateFlow<FinishedRide?>(null)
+    val pendingRide: StateFlow<FinishedRide?> = _pendingRide.asStateFlow()
+
     fun onStart(totalMassKg: Float = RiderProfileStore.DEFAULT.totalKg) {
         _state.value = RideState(isTracking = true, totalMassKg = totalMassKg)
         _position.value = null
         _track.value = emptyList()
+        _pendingRide.value = null
     }
 
-    fun onStop() {
+    /**
+     * Fine del giro: le statistiche restano leggibili (il pannello continua a mostrarle)
+     * e in più se ne congela una copia in [pendingRide], perché l'utente decida se
+     * salvarla.
+     *
+     * L'istante è un parametro con valore di default invece di una lettura interna
+     * dell'orologio, così i test possono datare un giro senza dipendere da quando girano.
+     */
+    fun onStop(endedAtMillis: Long = System.currentTimeMillis()) {
+        // Uno STOP a giro già fermo non deve rimettere in coda un giro a cui l'utente ha
+        // appena risposto: il service può ricevere ACTION_STOP più di una volta.
+        if (!_state.value.isTracking) return
         _state.update { it.copy(isTracking = false, speedKmh = 0f) }
+        _pendingRide.value = FinishedRide(
+            endedAtMillis = endedAtMillis,
+            state = _state.value,
+            track = _track.value,
+        )
+    }
+
+    /** L'utente ha risposto — salvato o scartato: la domanda non va più posta. */
+    fun onRideHandled() {
+        _pendingRide.value = null
     }
 
     /**

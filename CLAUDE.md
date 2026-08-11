@@ -101,9 +101,34 @@ Il flusso dei dati è a senso unico: **`TrackingService` produce → `RideTracke
   basso, due stati (compatto 34% / espanso 50%) con caratteri che crescono insieme
   all'altezza tramite un fattore `growth` derivato dall'animazione.
 
+- **[RideStore.kt](app/src/main/java/it/agoldoni/bike/RideStore.kt)** — storico dei giri
+  salvati su `filesDir/rides.json`, serializzato da `RideArchiveFormat` in
+  [SavedRide.kt](app/src/main/java/it/agoldoni/bike/SavedRide.kt). Riscrive tutto il file
+  a ogni operazione, ma **in modo atomico** (temporaneo + rename): con una riscrittura
+  interrotta a metà si perderebbero *tutti* i giri, non solo l'ultimo. Il record ha un
+  campo `version` e la lettura ignora i campi sconosciuti, così un file scritto da una
+  versione futura resta leggibile. Espone `revision`, un contatore che la UI osserva per
+  rileggere quando le località arrivano a schermo già aperto.
+
+- **[RouteDigest.kt](app/src/main/java/it/agoldoni/bike/RouteDigest.kt)** — riduce il
+  tracciato ai punti di cui chiedere il nome (uno ogni km, **al massimo 40 per giro**) e
+  deduplica le località consecutive uguali. Oggetto puro come `CalorieModel`: decide
+  quante richieste costa un giro, quindi è interamente coperto da test.
+
+- **Geocoding** — `PlaceResolver` è l'interfaccia; `SystemGeocoder` usa l'API di sistema
+  (due rami, perché la variante a callback esiste solo da API 33) e `NominatimGeocoder` è
+  il ripiego HTTP quando la prima non risponde — caso normale, non eccezione:
+  sull'emulatore senza GMS il geocoder di sistema è muto. `RideArchivist` orchestra il
+  tutto su uno scope di processo, perché né l'Activity né il service sopravvivono al
+  lavoro. I punti non ancora risolti restano nel giro salvato (`pendingSamples`) e si
+  svuotano appena i nomi arrivano: senza di loro il ritentativo dopo un giro fatto senza
+  rete sarebbe impossibile, perché il tracciato a quel punto non esiste più.
+
 - **Persistenza**: `SharedPreferences` con nome file `"bike"`, condiviso da
   `RiderProfileStore` (pesi) e `LastKnownPosition` (ultimo punto, per non aprire la mappa
   in mezzo al Golfo di Guinea). I `Double` si salvano come bit pattern in `Long`.
+  Lo storico dei giri invece sta in `filesDir/rides.json` (vedi `RideStore`): una lista di
+  record con liste annidate non entra nelle preferenze.
 
 ## Convenzioni Android del progetto
 
@@ -114,6 +139,14 @@ Il flusso dei dati è a senso unico: **`TrackingService` produce → `RideTracke
 - Versioni delle dipendenze centralizzate in
   [gradle/libs.versions.toml](gradle/libs.versions.toml), mai inline nel `build.gradle.kts`.
 - `minSdk 26`, `compileSdk`/`targetSdk 36`, `jvmTarget 17`.
+- **I dati non escono dal telefono**: `allowBackup="false"` *e*
+  `dataExtractionRules` che escludono tutto. Servono entrambi — il primo vale fino ad
+  Android 11, dal 12 comanda il secondo, che è anche l'unico a coprire il trasferimento
+  verso un telefono nuovo. Lo storico dei giri è una cronologia degli spostamenti.
+- **Nominatim** (ripiego del geocoding) è un servizio pubblico con obblighi da
+  rispettare: User-Agent identificativo con un contatto e **una richiesta al secondo**.
+  Il limite è imposto da un mutex in `NominatimGeocoder`; il tetto di 40 richieste per
+  giro da `RouteDigest`. Alzare uno dei due significa rischiare il blocco dell'IP.
 
 ## Sviluppo su emulatore
 

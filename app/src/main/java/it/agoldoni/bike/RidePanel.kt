@@ -28,7 +28,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
 
 // Con la barra di navigazione a tre pulsanti il compatto deve restare abbastanza alto
 // da non tagliare il pulsante START/STOP.
@@ -96,7 +95,7 @@ fun RidePanel(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = String.format(Locale.ITALY, "%.1f", state.speedKmh),
+                    text = formatSpeed(state.speedKmh),
                     fontSize = (48 + 42 * growth).sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -122,7 +121,7 @@ fun RidePanel(
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 Metric(
-                    value = String.format(Locale.ITALY, "%.2f", state.distanceMeters / 1000f),
+                    value = formatKm(state.distanceMeters),
                     label = "km",
                     growth = growth,
                     modifier = Modifier.weight(1f),
@@ -134,7 +133,7 @@ fun RidePanel(
                     modifier = Modifier.weight(1f),
                 )
                 Metric(
-                    value = String.format(Locale.ITALY, "%.1f", state.avgSpeedKmh),
+                    value = formatSpeed(state.avgSpeedKmh),
                     label = "media km/h",
                     growth = growth,
                     modifier = Modifier.weight(1f),
@@ -146,7 +145,7 @@ fun RidePanel(
             // La riga sfuma insieme all'altezza invece di comparire di scatto.
             if (growth > 0f) {
                 Metric(
-                    value = String.format(Locale.ITALY, "%.0f", state.kcal),
+                    value = formatKcal(state.kcal),
                     // Il peso è dentro l'etichetta perché è il parametro che decide il
                     // numero: mostrarlo dice anche dove si va a cambiarlo.
                     label = stringResource(R.string.kcal_label, totalMassKg.toInt()),
@@ -192,15 +191,4 @@ private fun Metric(value: String, label: String, growth: Float, modifier: Modifi
         )
         Text(text = label, fontSize = (13 + 3 * growth).sp, color = Color.Gray, maxLines = 1)
     }
-}
-
-private fun formatElapsed(millis: Long): String {
-    val totalSeconds = millis / 1000
-    return String.format(
-        Locale.ITALY,
-        "%d:%02d:%02d",
-        totalSeconds / 3600,
-        totalSeconds % 3600 / 60,
-        totalSeconds % 60,
-    )
 }

@@ -35,6 +35,56 @@ class RideTrackerTest {
         assertNull(RideTracker.state.value.accuracyMeters)
         assertTrue(RideTracker.state.value.isTracking)
         assertEquals(0f, RideTracker.state.value.kcal, 0f)
+        assertNull(RideTracker.pendingRide.value)
+    }
+
+    @Test
+    fun `onStop congela il giro appena concluso`() {
+        RideTracker.onSample(speedKmh = 25f, deltaMeters = 400f)
+        RideTracker.onElapsed(60_000L)
+        RideTracker.onTrackPoint(milan)
+        RideTracker.onTrackPoint(milanNorth)
+
+        RideTracker.onStop(endedAtMillis = 1_700_000_000_000L)
+
+        val pending = RideTracker.pendingRide.value!!
+        assertEquals(1_700_000_000_000L, pending.endedAtMillis)
+        assertEquals(400f, pending.state.distanceMeters, 0.001f)
+        assertEquals(60_000L, pending.state.elapsedMillis)
+        assertEquals(listOf(milan, milanNorth), pending.track)
+    }
+
+    @Test
+    fun `il giro congelato sopravvive a un nuovo punto arrivato in ritardo`() {
+        // Il congelamento è una copia, non una vista: un fix che arriva dopo lo STOP non
+        // deve cambiare il giro che l'utente sta decidendo se salvare.
+        RideTracker.onTrackPoint(milan)
+        RideTracker.onStop()
+
+        RideTracker.onTrackPoint(milanNorth)
+
+        assertEquals(listOf(milan), RideTracker.pendingRide.value!!.track)
+    }
+
+    @Test
+    fun `onRideHandled toglie il giro dalla coda`() {
+        RideTracker.onSample(speedKmh = 20f, deltaMeters = 500f)
+        RideTracker.onStop()
+
+        RideTracker.onRideHandled()
+
+        assertNull(RideTracker.pendingRide.value)
+    }
+
+    @Test
+    fun `un secondo onStop non rimette in coda un giro gia archiviato`() {
+        // Il service può ricevere ACTION_STOP più di una volta.
+        RideTracker.onStop()
+        RideTracker.onRideHandled()
+
+        RideTracker.onStop()
+
+        assertNull(RideTracker.pendingRide.value)
     }
 
     @Test

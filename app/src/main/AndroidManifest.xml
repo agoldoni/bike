@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Download delle tile OpenStreetMap: senza, la mappa resta grigia senza errori. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -11,8 +12,20 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Lo storico dei giri è una cronologia degli spostamenti e non deve uscire dal
+         dispositivo. Servono entrambe le dichiarazioni: `allowBackup` vale fino ad
+         Android 11, da Android 12 comanda `dataExtractionRules`, che copre anche il
+         trasferimento verso un telefono nuovo. Prezzo da pagare: cambiando telefono i
+         giri non si trasferiscono.
+
+         Il lint chiede anche `fullBackupContent` per le versioni precedenti alla 12, ma
+         lì il backup è già spento in blocco da `allowBackup="false"`: quel file non
+         avrebbe niente da dire. Da qui il tools:ignore. -->
     <application
         android:label="@string/app_name"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        tools:ignore="DataExtractionRules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"

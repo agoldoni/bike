@@ -13,4 +13,30 @@
     <string name="weights_bike">Bici (kg)</string>
     <string name="weights_save">Salva</string>
     <string name="weights_cancel">Annulla</string>
+
+    <string name="stat_distance">Distanza</string>
+    <string name="stat_time">Tempo</string>
+    <string name="stat_avg_speed">Media</string>
+    <string name="stat_kcal">Calorie</string>
+    <string name="stat_mass">Peso usato</string>
+    <string name="stat_places">Percorso</string>
+
+    <string name="save_ride_title">Salvare questo giro?</string>
+    <string name="save_ride_save">Salva</string>
+    <string name="save_ride_discard">Non salvare</string>
+
+    <string name="history_open">Storico</string>
+    <string name="history_title">Giri salvati</string>
+    <string name="history_back">Indietro</string>
+    <string name="history_empty">Nessun giro salvato.\n\nAl termine del prossimo giro ti verrà chiesto se conservarlo.</string>
+    <!-- Il geocoding non ha ancora risposto: il sommario può ancora arrivare. -->
+    <string name="history_places_pending">località in arrivo…</string>
+    <!-- Il geocoding ha risposto senza trovare nulla, oppure non è riuscito: qui non
+         arriverà altro senza un nuovo tentativo. -->
+    <string name="history_places_missing">località non disponibili</string>
+    <string name="history_delete">Elimina</string>
+    <string name="history_delete_title">Eliminare questo giro?</string>
+    <string name="history_delete_message">Il giro e il suo sommario verranno cancellati definitivamente.</string>
+    <string name="history_delete_confirm">Elimina</string>
+    <string name="history_delete_cancel">Annulla</string>
 </resources>

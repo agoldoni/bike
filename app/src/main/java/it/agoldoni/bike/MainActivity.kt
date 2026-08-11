@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
                 val state by RideTracker.state.collectAsStateWithLifecycle()
                 val position by RideTracker.position.collectAsStateWithLifecycle()
                 val track by RideTracker.track.collectAsStateWithLifecycle()
+                val pendingRide by RideTracker.pendingRide.collectAsStateWithLifecycle()
 
                 // Schermo sempre acceso durante il giro.
                 LaunchedEffect(state.isTracking) {
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     state = state,
                     position = position,
                     track = track,
+                    pendingRide = pendingRide,
                     onStart = ::startTracking,
                     onStop = { sendServiceAction(TrackingService.ACTION_STOP) },
                 )
@@ -114,22 +116,47 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Distanza sotto la quale un giro non merita nemmeno la domanda.
+ *
+ * Il criterio è la distanza e non la durata: l'app lasciata aperta un'ora da fermi non
+ * deve chiedere niente, mentre un giro breve ma vero sì. Il valore è generoso perché da
+ * fermi la distanza contata resta prossima a zero — ci pensano il filtro di accuratezza e
+ * `MIN_STEP_M` — quindi 300 m separano con ampio margine il giro dalla partenza per errore.
+ */
+private const val MIN_SAVE_DISTANCE_M = 300f
+
 @Composable
 private fun RideScreen(
     state: RideState,
     position: GeoPoint?,
     track: List<GeoPoint>,
+    pendingRide: FinishedRide?,
     onStart: () -> Unit,
     onStop: () -> Unit,
 ) {
     var panelExpanded by rememberSaveable { mutableStateOf(false) }
     var followPosition by rememberSaveable { mutableStateOf(true) }
     var editingWeights by rememberSaveable { mutableStateOf(false) }
+    var showHistory by rememberSaveable { mutableStateOf(false) }
     val topInsetPx = WindowInsets.statusBars.getTop(LocalDensity.current)
     val context = LocalContext.current
     // Letta una volta sola: dopo il primo fix comanda la posizione corrente.
     val lastKnown = remember { LastKnownPosition.load(context) }
     var profile by remember { mutableStateOf(RiderProfileStore.load(context)) }
+
+    // Un giro troppo corto si scarta senza disturbare: quasi sempre è uno START premuto
+    // per sbaglio, e chiederlo ogni volta insegnerebbe a rispondere senza leggere.
+    LaunchedEffect(pendingRide) {
+        if (pendingRide != null && pendingRide.state.distanceMeters < MIN_SAVE_DISTANCE_M) {
+            RideTracker.onRideHandled()
+        }
+    }
+
+    if (showHistory) {
+        HistoryScreen(onBack = { showHistory = false })
+        return
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -143,6 +170,24 @@ private fun RideScreen(
                 topInsetPx = topInsetPx,
                 initialCenter = lastKnown,
             )
+
+            // Solo a giro fermo: durante il tracciamento passare allo storico smonterebbe
+            // la mappa, e comunque i giri passati si guardano da fermi.
+            if (!state.isTracking) {
+                Button(
+                    onClick = { showHistory = true },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .statusBarsPadding()
+                        .padding(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xF2000000),
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text(text = stringResource(R.string.history_open))
+                }
+            }
 
             if (!followPosition) {
                 Button(
@@ -173,6 +218,21 @@ private fun RideScreen(
                 onEditWeights = { editingWeights = true },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
+
+            // Il dialog copre anche il pulsante START, che appena il tracciamento si
+            // ferma tornerebbe premibile: un nuovo giro azzererebbe quello da salvare.
+            if (pendingRide != null && pendingRide.state.distanceMeters >= MIN_SAVE_DISTANCE_M) {
+                SaveRideDialog(
+                    ride = pendingRide,
+                    onSave = {
+                        // Salvataggio e geocoding proseguono per conto loro: il dialog si
+                        // chiude subito e non aspetta le località.
+                        RideArchivist.save(context, pendingRide)
+                        RideTracker.onRideHandled()
+                    },
+                    onDiscard = { RideTracker.onRideHandled() },
+                )
+            }
 
             if (editingWeights) {
                 WeightsDialog(
